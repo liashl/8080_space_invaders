@@ -5,3 +5,9 @@ game_files/
 # files
 .DS_Store
 main
+
+# python virtual environment
+venv
+.venv/
+env/
+ENV/

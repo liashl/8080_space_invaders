@@ -1,5 +1,3 @@
-; ************************************** SPACE INVADERS DISASSEMBLY **********************************
-
 ; **** (RE)START & INTERRUPT SERVICE ROUTINES ****
 
 ; Start the space invaders game. When the ROM is loaded into the 8080's memory, the code
@@ -2663,11 +2661,7 @@ name: ufoShotScore [UFO SUBROUTINE (JUMP STRUCTURE 4) / ISR]
 ;    0x0913 - trigger UFO countdown (called right after game processing in VBLANK)
 ;    0x092E - get the current player's remaining number of lives in A
 ;    0x0935 - when it's time, award player an extra life/ship sprite
-;    0x097C - get score for dying invader (look up in table by alien row)
-;    0x0988 - update the player's score if flag at 0x20F1 indicates it's needed
-;    0x09AD - write the player's 4-digit score to screen pointer in HL
-;    0x09C5 - write single binary-coded decimal digit (in A) to screen (calls 0x08FF)
-;    0x09CA - prints to the score data structure in RAM for current player
+;
 ;    0x09D6 - clear the game area in video memory
 ;    0x09EF - handle player win (also handles last-second player death)
 ;    0x0A59 - check player's health (sets zero flag if healthy)
@@ -2867,8 +2861,10 @@ name: ufoShotScore [UFO SUBROUTINE (JUMP STRUCTURE 4) / ISR]
      0x0934: C9          |   RET
 
 ; name: awardExtraLife
-; when the player has a sufficeint number of points, and if a life hasn't already been awarded,
+; when the player has a sufficient number of points, and if a life hasn't already been awarded,
 ; award the player an extra life. This is called during the main game loop
+; there are two possible points thresholds, which can be toggled based on dipswitch input
+; via input port 2
 
 .awardExtraLife
      0x0935: CD [10 19]  |   CAL 0x1910                          ; returns HL = 20E7 if p1, 20E8 if p2
@@ -2910,6 +2906,18 @@ name: ufoShotScore [UFO SUBROUTINE (JUMP STRUCTURE 4) / ISR]
      0x0974: 32 [99 20]  |   STA 0x2099                          ; and put 0xFF at 0x2099 (hold sound timer)
      0x0977: 06 [10]     |   MVI B, 0x10                         ; set bit 4 in B
      0x0979: C3 [FA 18]  |   JMP 0x18FA                          ; sound out port 3 (2094 |= B --> out). New ship added!
+
+; -------------------------------------------------------
+;
+; *** UPDATE PLAYER SCORE SUBROUTINE  ***
+;
+;    0x097C - get score for dying invader (look up in table by alien row)
+;    0x0988 - update the player's score if flag at 0x20F1 indicates it's needed
+;    0x09AD - write the player's 4-digit score to screen pointer in HL
+;    0x09C5 - write single binary-coded decimal digit (in A) to screen (calls 0x08FF)
+;    0x09CA - prints to the score data structure in RAM for current player
+;
+; --------------------------------------------------------
 
 ; name: alienRowToScore
 ; look up the shot alien's score in a table, based on its row in the grid. This is called
@@ -3314,10 +3322,10 @@ name: ufoShotScore [UFO SUBROUTINE (JUMP STRUCTURE 4) / ISR]
      0x0ade: C2 [DA 0A]  |   JNZ 0x0ADA                          ; loop
      0x0ae1: C9          |   RET
 
-; name: resetSplashSequence
+; name: resetSplashObject
 ; Reloads the 12-byte "live" animation data buffer from a ROM address in DE
 
-.resetSplashSequence
+.resetSplashObject
      0x0ae2: 21 [C2 20]  |   LXI H, 0x20C2                       ; point HL at 0x20C2
      0x0ae5: 06 [0C]     |   MVI B, 0x0C                         ; 12 bytes
      0x0ae7: C3 [32 1A]  |   JMP 0x1A32                          ; romToRamCopy, returns
@@ -5836,7 +5844,9 @@ name: ufoShotScore [UFO SUBROUTINE (JUMP STRUCTURE 4) / ISR]
      0x1afe: 25                                             ;              '>'
      0x1aff: 26                                             ;              ' '
 
-; ********************** INITIALIZED GAME VARIABLES ***********************
+; ********************** INITIALIZED GAME VARIABLES *********************************************
+; note that as part of game initialization, all data from 0x1B00 to 0x1BFF is copied into
+; game RAM at 0x2000 to 0x20FF. This copy is what the "corresponding RAM" to the right refers to.
 
 ;                        ******** ROM *********                            ******* CORRESPONDING RAM ********
 
